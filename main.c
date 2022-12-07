@@ -23,7 +23,7 @@ typedef struct
 	uint64_t ADC_PSSI;
 	uint64_t ADC_CTL;
 	// TODO:	-	Datenstruktur erweitern um auf SSFIFO0 zugreifen zu kÃ¶nnen
-	uint32_t ADC_SSFIFO0 = ADC0_SSFIFO0_R;
+	uint32_t ADC_SSFIFO0;
 } adc_t;
 
 //assignment-task_start
@@ -32,7 +32,7 @@ joy_val pos;
 
 void pwm_init(void)
 {
-		SYSCTL_RCGCPWM_R |= SYSCTL_RCGCPWM_R0 + SYSCTL_RCGCPWM_R1;
+	SYSCTL_RCGCPWM_R |= SYSCTL_RCGCPWM_R0 + SYSCTL_RCGCPWM_R1;
 	SYSCTL_RCGC2_R |= SYSCTL_RCGC2_GPIOC + SYSCTL_RCGC2_GPIOF;
 	for (int i = 0; i < 4; ++i){
 		__ASM("NOP");
@@ -71,6 +71,22 @@ void gptm_init(void)
 	//Ensure timer is disabled
 	TIMER0_CTL_R = 0;
 	//Write the GPTM Configuration Register (GPTMCFG) with a value of 0x0000.0000
+	TIMER0_CFG_R = 0;
+	TIMER0_TAMR_R |= 0x2;
+	//4. Optionally configure the TnSNAPS, TnWOT, TnMTE, and TnCDIR bits in the GPTMTnMR register
+	//to select whether to capture the value of the free-running timer at time-out, use an external
+	//trigger to start counting, configure an additional trigger or interrupt, and count up or down.
+
+	//Load the start value into the GPTM Timer n Interval Load Register (GPTMTnILR).
+
+	//If interrupts are required, set the appropriate bits in the GPTM Interrupt Mask Register
+	//(GPTMIMR).
+
+	//7. Set the TnEN bit in the GPTMCTL register to enable the timer and start counting.
+
+	/*8. Poll the GPTMRIS register or wait for the interrupt to be generated (if enabled). In both cases,
+	the status flags are cleared by writing a 1 to the appropriate bit of the GPTM Interrupt Clear
+	Register (GPTMICR).*/
 
 }
 
@@ -92,19 +108,33 @@ void adc_init(adc_t *adc)
 	GPIO_PORTB_AMSEL_R |= GPIO_PIN_JOY_X;
 	GPIO_PORTD_AMSEL_R |= GPIO_PIN_JOY_Y;
 
+	//Sample Sequencer 0 wird deaktiviert
 	adc->ADC_ACTSS &= ~ADC_ACTSS_ASEN0;
+	//PWM Generator 3 wird als Input für den ADC gesetzt
+	ADC0_EMUX_R |= ADC_EMUX_EM0_TIMER;
+	//Setze AIN4 und AIN11 in SSMUX (0xB für )
+	ADC0_SSMUX0_R |= 0x04 | 0xB0;
+	//Generator 3 wird als Trigger für ADC ausgewählt
+	ADC0_TSSEL_R |= ADC_TSSEL_PS3_0;
+	//Sequencer beendet Sequenz nach 2 Samples
+	ADC0_SSCTL0_R |= ADC_SSCTL0_END1 | ADC_SSCTL0_IE1;
+	ADC0_IM_R |= ADC_IM_MASK0;
+	//Sample Sequencer 0 wird aktiviert
+	adc->ADC_ACTSS |= ADC_ACTSS_ASEN0;
+	//ADC0_ACTSS_R |= ADC_ACTSS_ASEN0;
 
-
+	NVIC_EN0_R |= (1<<14);
 }
 
 void ADC0_Handler(void)
 {
 	ADC0_flag = 1;
+	ADC0_ISC_R |= 0x1;
 }
 
 int main(void)
 {
-	adc_init();
+	adc_init(adc_t);
 	pwm_init();
 	gptm_init();
 
