@@ -18,12 +18,17 @@ volatile uint8_t ADC0_flag = 0;
 // ADC_PSSI & ADC_CTL groesseres OFFSET->uint64_t
 typedef struct
 {
-	uint32_t ADC_ACTSS;
-	uint32_t ADC_RIS;
-	uint64_t ADC_PSSI;
-	uint64_t ADC_CTL;
+	uint32_t ADC_ACTSS = ADC0_ACTSS_R;
+	uint32_t ADC_RIS = ADC0_RIS_R;
+	uint64_t ADC_PSSI = ADC0_PSSI_R;
+	uint64_t ADC_CTL = ADC0_CTL_R;
 	// TODO:	-	Datenstruktur erweitern um auf SSFIFO0 zugreifen zu kÃ¶nnen
-	uint32_t ADC_SSFIFO0;
+	uint64_t ADC_IM = ADC0_IM_R;
+	uint64_t ADC_EMUX = ADC0_EMUX_R;
+	uint64_t ADC_SSCTL = ADC0_SSCTL0_R;
+	uint64_t ADC_TSSEL = ADC0_TSSEL_R;
+	uint64_t ADC_SSMUX = ADC0_SSMUX0_R;
+	uint32_t ADC_SSFIFO0 = ADC0_SSFIFO0_R;
 } adc_t;
 
 //assignment-task_start
@@ -111,14 +116,19 @@ void adc_init(adc_t *adc)
 	//Sample Sequencer 0 wird deaktiviert
 	adc->ADC_ACTSS &= ~ADC_ACTSS_ASEN0;
 	//PWM Generator 3 wird als Input für den ADC gesetzt
-	ADC0_EMUX_R |= ADC_EMUX_EM0_TIMER;
+	adc->ADC_EMUX |= ADC_EMUX_EM0_TIMER;
+	//ADC0_EMUX_R |= ADC_EMUX_EM0_TIMER;
 	//Setze AIN4 und AIN11 in SSMUX (0xB für )
-	ADC0_SSMUX0_R |= 0x04 | 0xB0;
+	adc->ADC_SSMUX |= 0x04 | 0xB0;
+	//ADC0_SSMUX0_R |= 0x04 | 0xB0;
 	//Generator 3 wird als Trigger für ADC ausgewählt
-	ADC0_TSSEL_R |= ADC_TSSEL_PS3_0;
+	adc->ADC_TSSEL |= ADC_TSSEL_PS3_0;
+	//ADC0_TSSEL_R |= ADC_TSSEL_PS3_0;
 	//Sequencer beendet Sequenz nach 2 Samples
-	ADC0_SSCTL0_R |= ADC_SSCTL0_END1 | ADC_SSCTL0_IE1;
-	ADC0_IM_R |= ADC_IM_MASK0;
+	adc->ADC_SSCTL |= ADC_SSCTL0_END1 | ADC_SSCTL0_IE1;
+	//ADC0_SSCTL0_R |= ADC_SSCTL0_END1 | ADC_SSCTL0_IE1;
+	adc->ADC_IM |= ADC_IM_MASK0;
+	//ADC0_IM_R |= ADC_IM_MASK0;
 	//Sample Sequencer 0 wird aktiviert
 	adc->ADC_ACTSS |= ADC_ACTSS_ASEN0;
 	//ADC0_ACTSS_R |= ADC_ACTSS_ASEN0;
